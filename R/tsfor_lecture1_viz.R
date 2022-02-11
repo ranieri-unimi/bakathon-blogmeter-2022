@@ -16,7 +16,7 @@
 source("R/utils.R")
 source("R/packages.R")
 
-
+#install.packages("languageserver")
 
 # Data --------------------------------------------------------------------
 
@@ -42,6 +42,7 @@ subscribers_tbl %>%
   summarise_by_time(optin_time, .by = "day", optins = n()) %>%
   pivot_wider(names_from = member_rating, values_from = optins)
 
+# sum() for each day
 analytics_daily_tbl <- analytics_tbl %>%
   mutate(date = ymd_h(dateHour), .before = everything()) %>%
   select(-dateHour) %>%
@@ -61,7 +62,7 @@ subscribers_tbl %>%
 # - Filling in time series gaps
 # - Low-to-High Frequency (un-aggregating)
 
-# fill daily gaps
+# fill daily gaps, with zeroes???? (I'd rather use the avg u.u ) to replace NA values 
 subscribers_daily_tbl %>%
   pad_by_time(.date_var = optin_time, .by = "day", .pad_value = 0, .start_date = "2018-06-01")
 
@@ -90,6 +91,8 @@ subscribers_daily_tbl %>%
 # - Get change from beginning/end of period
 
 # first, last, mean, median by period
+# insteado of taking start-end diff, we'll look to summarize window-span
+
 subscribers_daily_tbl %>%
   mutate_by_time(
     .by = "1 week",
@@ -110,8 +113,8 @@ subscribers_google_joined_tbl <- subscribers_daily_tbl %>%
   left_join(analytics_daily_tbl, by = c("optin_time" = "date"))
 
 # inspect join
-subscribers_google_joined_tbl %>% plot_missing()
-subscribers_google_joined_tbl %>% tk_summary_diagnostics()
+subscribers_google_joined_tbl %>% plot_missing() # kawaii
+subscribers_google_joined_tbl %>% tk_summary_diagnostics() 
 
 # plot relationships
 subscribers_google_joined_tbl %>%
@@ -143,10 +146,13 @@ model_fit_lm <- lm(
   data = subscribers_daily_tbl
 )
 
+summary(model_fit_lm) # look at the sky, its a bird its a plane
+
+
 future_tbl <- subscribers_daily_tbl %>%
   future_frame(.length_out = "2 months")
 
-predictions_vec <- predict(model_fit_lm, newdata = future_tbl) %>% as.vector()
+predictions_vec <- predict(model_fit_lm, newdata = future_tbl) %>% as.vector() # forcaster
 
 subscribers_daily_tbl %>%
   select(optin_time, optins) %>%
@@ -167,11 +173,11 @@ subscribers_daily_tbl <- subscribers_tbl %>%
 
 # * Variance Reduction ----------------------------------------------------
 
-# Log
+# Log = never
 subscribers_daily_tbl %>%
   mutate(optins = log(optins))
 
-# Log + 1
+# Log + 1 = always*
 subscribers_daily_tbl %>%
   mutate(optins = log1p(optins)) %>%
   plot_time_series(optin_time, optins)
@@ -191,7 +197,7 @@ subscribers_daily_tbl %>%
 # - Used in visualization to overlay series
 # - Used in ML for models that are affected by feature magnitude (e.g. linear regression)
 
-# Normalization Range (0,1)
+# Normalization Range (0,1) = MAX-MIN (maybe logit uwu)
 analytics_daily_tbl %>%
   pivot_longer(-date) %>%
   group_by(name) %>%
@@ -207,6 +213,7 @@ analytics_daily_tbl %>%
 
 
 # * Smoothing -------------------------------------------------------------
+ # = iacone said that's nasty, dont do it
 
 # - Identify trends and cycles
 # - Clean seasonality
@@ -264,6 +271,8 @@ subscribers_daily_tbl %>%
   mutate(optins_imputed = ts_impute_vec(optins_na, period = 7)) %>%
   pivot_longer(-optin_time) %>%
   plot_time_series(optin_time, log1p(value), .color_var = name, .smooth = FALSE)
+
+  # fill with avg, but spicy (a bit of MA)
 
 
 # * Anomaly Cleaning ------------------------------------------------------

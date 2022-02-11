@@ -80,6 +80,8 @@ events_daily_tbl %>%
 # - tk_augment_timeseries_signature()
 
 data_prep_signature_tbl <- data_prep_tbl %>%
+
+## calendar features, as you like
   tk_augment_timeseries_signature() %>%
   select(
     -diff, -ends_with("iso"), -ends_with(".xts"), -contains("hour"),
@@ -87,14 +89,16 @@ data_prep_signature_tbl <- data_prep_tbl %>%
   )
 data_prep_signature_tbl %>% glimpse()
 
+# TODO contingency table // canocical correlation with calendar features  => select the best one! owo
+
 
 # * Trend-Based Features --------------------------------------------------
 
-# linear trend
+# linear trend = meh
 data_prep_signature_tbl %>%
   plot_time_series_regression(optin_time, .formula = optins_trans ~ index.num)
 
-# nonlinear trend - basis splines
+# nonlinear trend - basis splines 
 data_prep_signature_tbl %>%
   plot_time_series_regression(
     optin_time,
@@ -156,8 +160,8 @@ data_prep_rolls_tbl %>%
 data_prep_tbl %>%
   plot_acf_diagnostics(optin_time, optins_trans, .lags = 100)
 
-data_prep_lags_tbl <- data_prep_tbl %>%
-  tk_augment_lags(optins_trans, .lags = c(1, 7, 14, 30, 90, 365)) %>%
+data_prep_lags_tbl <- data_prepared_tbl %>%
+  tk_augment_lags(optins_trans, .lags = c(1, 7, 14, 30, 90, 365)) %>% # lags based on calendar shifts
   drop_na()
 data_prep_lags_tbl %>% glimpse()
 
