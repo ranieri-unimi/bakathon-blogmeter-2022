@@ -76,6 +76,7 @@ model_fit_arima <- arima_reg() %>%
 # ARIMAX
 model_spec_arima <- arima_reg() %>%
   set_engine("auto_arima")
+  
 rcp_spec_fourier <- recipe(optins_trans ~ optin_time, data = training(splits)) %>%
   step_fourier(optin_time, period = c(7, 14, 30, 90), K = 1)
 

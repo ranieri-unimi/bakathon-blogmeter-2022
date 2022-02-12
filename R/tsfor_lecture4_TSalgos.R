@@ -5,13 +5,12 @@
 # Marco Zanotti
 
 # Goals:
-# - Global Baseline Models
-# - SARIMAX
-# - ETS
-# - TBATS
-# - STLM
-# - PROPHET
-
+# - Global Baseline Model
+# - SARIMAX =ARIMA + eXternal regressor (?) + seaSonality
+# - ETS (exp trend smooth = weight avg)
+# - TBATS (multiple season + ets)
+# - STLM (seasonal trend linear model)
+# - PROPHET ()
 
 
 # Packages ----------------------------------------------------------------
@@ -20,17 +19,16 @@ source("R/utils.R")
 source("R/packages.R")
 
 
-
 # Data & Artifacts --------------------------------------------------------
 
-artifacts_list <- read_rds("artifacts/feature_engineering_artifacts_list.rds")
-data_prep_tbl <- artifacts_list$data$data_prep_tbl
-forecast_tbl <- artifacts_list$data$forecast_tbl
+artifacts_list = read_rds("artifacts/feature_engineering_artifacts_list.rds")
+data_prep_tbl = artifacts_list$data$data_prep_tbl
+forecast_tbl = artifacts_list$data$forecast_tbl
 
 
 # * Train / Test Sets -----------------------------------------------------
 
-splits <- time_series_split(data_prep_tbl, assess = "8 weeks", cumulative = TRUE)
+splits = time_series_split(data_prep_tbl, assess = "8 weeks", cumulative = TRUE)
 
 splits %>%
   tk_time_series_cv_plan() %>%
@@ -39,7 +37,7 @@ splits %>%
 
 # * Recipes ---------------------------------------------------------------
 
-rcp_spec_fourier <- recipe(optins_trans ~ optin_time + event, data = training(splits)) %>%
+rcp_spec_fourier = recipe(optins_trans ~ optin_time + event, data = training(splits)) %>%
   step_fourier(optin_time, period = c(7, 14, 30, 90), K = 1)
 # Recipe with Fourier Terms and Events
 
@@ -58,17 +56,17 @@ rcp_spec_fourier <- recipe(optins_trans ~ optin_time + event, data = training(sp
 # * Engines ---------------------------------------------------------------
 
 # NAIVE
-model_fit_naive <- naive_reg() %>%
+model_fit_naive = naive_reg() %>%
   set_engine("naive") %>%
   fit(optins_trans ~ optin_time, training(splits))
 
 # SNAIVE
-model_fit_snaive <- naive_reg() %>%
+model_fit_snaive = naive_reg() %>%
   set_engine("snaive") %>%
   fit(optins_trans ~ optin_time, training(splits))
 
 # WINDOW - MEAN
-model_fit_mean <- window_reg(
+model_fit_mean = window_reg(
   window_size = 7
 ) %>%
   set_engine(
@@ -79,7 +77,7 @@ model_fit_mean <- window_reg(
   fit(optins_trans ~ optin_time, training(splits))
 
 # WINDOW - WEIGHTED MEAN
-model_fit_wmean <- window_reg(
+model_fit_wmean = window_reg(
   window_size = 7
 ) %>%
   set_engine(
@@ -89,7 +87,7 @@ model_fit_wmean <- window_reg(
   fit(optins_trans ~ optin_time, training(splits))
 
 # WINDOW - MEDIAN
-model_fit_median <- window_reg(
+model_fit_median = window_reg(
   window_size = 7
 ) %>%
   set_engine(
@@ -102,7 +100,7 @@ model_fit_median <- window_reg(
 
 # * Calibration -----------------------------------------------------------
 
-calibration_tbl <- modeltime_table(
+calibration_tbl = modeltime_table(
   model_fit_naive,
   model_fit_snaive,
   model_fit_mean,
@@ -127,7 +125,7 @@ calibration_tbl %>%
 
 # * Refitting & Forecasting -----------------------------------------------
 
-refit_tbl <- calibration_tbl %>%
+refit_tbl = calibration_tbl %>%
   modeltime_refit(data = data_prep_tbl)
 
 refit_tbl %>%
@@ -158,7 +156,7 @@ refit_tbl %>%
 # * Engines ---------------------------------------------------------------
 
 # SARIMA
-model_fit_arima <- arima_reg(
+model_fit_arima = arima_reg(
   non_seasonal_ar = 1,
   non_seasonal_differences = 1,
   non_seasonal_ma = 1,
@@ -171,19 +169,19 @@ model_fit_arima <- arima_reg(
   fit(optins_trans ~ optin_time, training(splits))
 
 # Auto-SARIMA
-model_fit_auto_sarima <- arima_reg() %>%
+model_fit_auto_sarima = arima_reg() %>%
   set_engine("auto_arima") %>%
   fit(optins_trans ~ optin_time, training(splits))
 
 # Auto-SARIMA with XREG
-model_spec_auto_sarima_xregs <- arima_reg() %>%
+model_spec_auto_sarima_xregs = arima_reg() %>%
   set_engine("auto_arima")
 
 
 # * Workflows -------------------------------------------------------------
 
 # Auto-SARIMA with XREG
-wrkfl_fit_auto_sarima_xregs <- workflow() %>%
+wrkfl_fit_auto_sarima_xregs = workflow() %>%
   add_recipe(rcp_spec_fourier) %>%
   add_model(model_spec_auto_sarima_xregs) %>%
   fit(training(splits))
@@ -213,7 +211,7 @@ calibrate_evaluate_plot(
 # * Engines ---------------------------------------------------------------
 
 # ETS Additive
-model_fit_ets <- exp_smoothing(
+model_fit_ets = exp_smoothing(
   error = "additive",
   trend = "additive",
   season = "additive"
@@ -222,17 +220,17 @@ model_fit_ets <- exp_smoothing(
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # Auto-ETS
-model_fit_auto_ets <- exp_smoothing() %>%
+model_fit_auto_ets = exp_smoothing() %>%
   set_engine("ets") %>%
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # ThetaF
-model_fit_theta <- exp_smoothing() %>%
+model_fit_theta = exp_smoothing() %>%
   set_engine("theta") %>%
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # CROSTON (method for intermittent demand forecasting)
-# model_fit_croston <- exp_smoothing() %>%
+# model_fit_croston = exp_smoothing() %>%
 #   set_engine("croston") %>%
 #   fit(optins_trans ~ optin_time, data = training(splits))
 
@@ -264,7 +262,7 @@ calibrate_evaluate_plot(
 # * Engines ---------------------------------------------------------------
 
 # TBATS with 3 Seasonalities
-model_fit_tbats <- seasonal_reg(
+model_fit_tbats = seasonal_reg(
   seasonal_period_1 = 7,
   seasonal_period_2 = 30,
   seasonal_period_3 = 365
@@ -273,7 +271,7 @@ model_fit_tbats <- seasonal_reg(
   fit(optins_trans ~ optin_time, training(splits))
 
 # Auto-TBATS
-model_fit_auto_tbats <- seasonal_reg() %>%
+model_fit_auto_tbats = seasonal_reg() %>%
   set_engine("tbats") %>%
   fit(optins_trans ~ optin_time, training(splits))
 
@@ -304,7 +302,7 @@ calibrate_evaluate_plot(
 # * Engines ---------------------------------------------------------------
 
 # STLM with ETS
-model_fit_stlm_ets <- seasonal_reg(
+model_fit_stlm_ets = seasonal_reg(
   seasonal_period_1 = 7,
   seasonal_period_2 = 30,
   seasonal_period_3 = 364 / 2
@@ -313,7 +311,7 @@ model_fit_stlm_ets <- seasonal_reg(
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # STLM with ARIMA
-model_fit_stlm_arima <- seasonal_reg(
+model_fit_stlm_arima = seasonal_reg(
   seasonal_period_1 = 7,
   seasonal_period_2 = 30,
   seasonal_period_3 = 364 / 2
@@ -322,7 +320,7 @@ model_fit_stlm_arima <- seasonal_reg(
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # STLM with ARIMA + XREGS
-model_fit_stlm_arima_xregs <- seasonal_reg(
+model_fit_stlm_arima_xregs = seasonal_reg(
   seasonal_period_1 = 7,
   seasonal_period_2 = 30,
   seasonal_period_3 = 364 / 2
@@ -331,12 +329,12 @@ model_fit_stlm_arima_xregs <- seasonal_reg(
   fit(optins_trans ~ optin_time + event, data = training(splits))
 
 # Auto-STLM with ARIMA (simply STL with ARIMA on the ts frequency seasonlity)
-model_fit_auto_stlm_arima <- seasonal_reg() %>%
+model_fit_auto_stlm_arima = seasonal_reg() %>%
   set_engine("stlm_arima") %>%
   fit(optins_trans ~ optin_time, data = training(splits))
 
 # Auto-STLM with ARIMA + XREGS
-model_fit_auto_stlm_arima_xregs <- seasonal_reg() %>%
+model_fit_auto_stlm_arima_xregs = seasonal_reg() %>%
   set_engine("stlm_arima") %>%
   fit(optins_trans ~ optin_time + event, data = training(splits))
 
@@ -368,7 +366,7 @@ calibrate_evaluate_plot(
 # * Engines ---------------------------------------------------------------
 
 # PROPHET
-model_fit_prophet <- prophet_reg(
+model_fit_prophet = prophet_reg(
   changepoint_num = 10,
   changepoint_range = 0.9,
   seasonality_weekly = TRUE,
@@ -377,8 +375,8 @@ model_fit_prophet <- prophet_reg(
   set_engine("prophet") %>%
   fit(optins_trans ~ optin_time, data = training(splits))
 
-prophet_model <- model_fit_prophet$fit$models$model_1
-prophet_fcst <- predict(
+prophet_model = model_fit_prophet$fit$models$model_1
+prophet_fcst = predict(
   prophet_model,
   newdata = training(splits) %>% rename(ds = 1, y = 2) %>% select(ds, y)
 )
@@ -387,12 +385,12 @@ plot(prophet_model, prophet_fcst) +
 prophet_plot_components(prophet_model, prophet_fcst)
 
 # Auto-PROPHET
-model_fit_auto_prophet <- prophet_reg() %>%
+model_fit_auto_prophet = prophet_reg() %>%
   set_engine("prophet") %>%
   fit(optins_trans ~ optin_time, data = training(splits))
 
-prophet_model <- model_fit_auto_prophet$fit$models$model_1
-prophet_fcst <- predict(
+prophet_model = model_fit_auto_prophet$fit$models$model_1
+prophet_fcst = predict(
   prophet_model,
   newdata = training(splits) %>% rename(ds = 1, y = 2) %>% select(ds, y)
 )
@@ -401,7 +399,7 @@ plot(prophet_model, prophet_fcst) +
 prophet_plot_components(prophet_model, prophet_fcst)
 
 # PROPHET with XREGs
-model_fit_prophet_xregs <- prophet_reg(
+model_fit_prophet_xregs = prophet_reg(
   seasonality_weekly = TRUE,
   seasonality_yearly = TRUE
 ) %>%
@@ -424,7 +422,7 @@ calibrate_evaluate_plot(
 # * Comparison ------------------------------------------------------------
 
 # * Calibration (full)
-calibration_tbl <- modeltime_table(
+calibration_tbl = modeltime_table(
   # BASELINE
   model_fit_naive,
   model_fit_snaive,
@@ -460,7 +458,7 @@ calibration_tbl <- modeltime_table(
   modeltime_calibrate(testing(splits))
 
 # * Calibration (best)
-calibration_tbl <- modeltime_table(
+calibration_tbl = modeltime_table(
   model_fit_mean,
   wrkfl_fit_auto_sarima_xregs,
   model_fit_auto_ets,
@@ -483,10 +481,10 @@ calibration_tbl %>%
 # * Refitting & Forecasting
 
 # Best by RMSE
-model_ts_best <- calibration_tbl %>%
+model_ts_best = calibration_tbl %>%
   select_best_id(n = 3)
 
-refit_tbl <- calibration_tbl %>%
+refit_tbl = calibration_tbl %>%
   filter(.model_id %in% model_ts_best) %>%
   modeltime_refit(data = data_prep_tbl)
 

@@ -27,8 +27,9 @@ source("R/packages.R")
 
 # packages treesnip and catboost have to be installed from dev versions
 remotes::install_github("curso-r/treesnip")
+uri_catboost = 'https://github.com/catboost/catboost/releases/download/v1.0.4/catboost-R-Windows-1.0.4.tgz'
 devtools::install_url(
-  "https://github.com/catboost/catboost/releases/download/v1.0.0/catboost-R-Linux-1.0.0.tgz",
+  uri_catboost,
   INSTALL_opts = c("--no-multiarch", "--no-test-load")
 )
 
