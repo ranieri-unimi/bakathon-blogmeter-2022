@@ -1,6 +1,11 @@
 renv::init()
 renv::snapshot()
 
+uri_catboost = 'https://github.com/catboost/catboost/releases/download/v1.0.4/catboost-R-Windows-1.0.4.tgz'
+devtools::install_url(uri_catboost, INSTALL_opts = c("--no-multiarch", "--no-test-load"))
+remotes::install_github("curso-r/treesnip")
+
+
 # install.packages('DT')
 # install.packages('tidyverse')    # Meta - dplyr, ggplot2, purrr, tidyr, stringr, forcats
 # install.packages('lubridate')    # date and time
